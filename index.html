@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Ehab Gamal — Video Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&family=Fraunces:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-a:#0D0B1E; --bg-b:#1A0B2E; --bg-c:#0B1E2E;
+    --glass:rgba(255,255,255,0.06);
+    --glass-border:rgba(255,255,255,0.12);
+    --glass-hover:rgba(255,255,255,0.1);
+    --violet:#9B6DFF; --pink:#FF6DB6; --teal:#3DFFD0;
+    --text:#F0EEF8; --muted:rgba(240,238,248,0.45);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+
+  /* ANDROID FIX: no background-attachment:fixed (breaks on Android Chrome) */
+  body {
+    font-family:'Outfit',sans-serif; color:var(--text); overflow-x:hidden;
+    background-color: var(--bg-a);
+  }
+  /* Pseudo-element holds the gradient so it doesn't use fixed attachment */
+  body::before {
+    content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(155,109,255,0.25) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 80%, rgba(61,255,208,0.12) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 60% at 60% 30%, rgba(255,109,182,0.1) 0%, transparent 50%),
+      var(--bg-a);
+  }
+
+  /* NAV — full width on mobile, no transform issues on Android */
+  nav {
+    position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:100;
+    width:calc(100% - 32px); max-width:1100px;
+    background:rgba(13,11,30,0.85);
+    /* ANDROID FIX: -webkit- prefix for backdrop-filter */
+    -webkit-backdrop-filter:blur(20px);
+    backdrop-filter:blur(20px);
+    border:1px solid var(--glass-border); border-radius:16px;
+    display:flex; align-items:center; padding:0 20px; height:60px;
+    gap:8px;
+  }
+  .nav-logo {
+    font-family:'Fraunces',serif; font-size:20px; font-style:italic; margin-right:auto;
+    background:linear-gradient(135deg,var(--violet),var(--teal));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    background-clip:text;
+  }
+  .nav-links { display:flex; gap:2px; }
+  .nav-links a {
+    text-decoration:none; color:var(--muted); font-size:11px; font-weight:500;
+    padding:6px 12px; border-radius:8px; transition:all 0.2s; letter-spacing:0.3px;
+    white-space:nowrap;
+  }
+  .nav-links a:hover { color:var(--text); background:var(--glass); }
+  .nav-btn {
+    margin-left:8px; text-decoration:none; color:var(--text); font-size:11px; font-weight:600;
+    background:linear-gradient(135deg,var(--violet),var(--pink)); padding:8px 16px; border-radius:10px;
+    transition:opacity 0.2s; letter-spacing:0.3px; white-space:nowrap;
+  }
+  .nav-btn:hover { opacity:0.85; }
+
+  /* HERO */
+  .hero {
+    min-height:100vh; display:-webkit-box; display:flex;
+    -webkit-box-align:center; align-items:center;
+    -webkit-box-pack:center; justify-content:center;
+    padding:120px 24px 80px; text-align:center; position:relative; overflow:hidden;
+  }
+  .hero-orb1, .hero-orb2, .hero-orb3 {
+    position:absolute; border-radius:50%; filter:blur(80px); pointer-events:none;
+  }
+  .hero-orb1 { width:400px; height:400px; background:rgba(155,109,255,0.2); top:-100px; left:-100px; }
+  .hero-orb2 { width:350px; height:350px; background:rgba(61,255,208,0.12); bottom:-50px; right:-50px; }
+  .hero-orb3 { width:250px; height:250px; background:rgba(255,109,182,0.12); top:50%; left:50%; transform:translate(-50%,-50%); }
+  .hero-content { position:relative; z-index:2; width:100%; max-width:700px; }
+  .hero-pill {
+    display:-webkit-inline-box; display:inline-flex; -webkit-box-align:center; align-items:center; gap:8px;
+    background:rgba(255,255,255,0.08); border:1px solid var(--glass-border); border-radius:100px;
+    padding:8px 20px; font-size:12px; color:var(--muted); margin-bottom:36px;
+  }
+  .hero-pill-dot { width:6px; height:6px; background:var(--teal); border-radius:50%; animation:pulse 2s infinite; flex-shrink:0; }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:0.6} }
+  h1 { font-size:clamp(52px,12vw,130px); font-weight:700; line-height:0.92; letter-spacing:-2px; }
+  h1 .name-1 { display:block; color:var(--text); }
+  h1 .name-2 {
+    display:block;
+    background:linear-gradient(135deg,var(--violet),var(--pink),var(--teal));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    font-family:'Fraunces',serif; font-style:italic; font-weight:300;
+  }
+  .hero-desc { max-width:500px; margin:32px auto 0; font-size:16px; line-height:1.75; color:var(--muted); font-weight:300; }
+  .hero-desc strong { color:var(--text); font-weight:500; }
+  .hero-actions { display:-webkit-box; display:flex; gap:12px; -webkit-box-pack:center; justify-content:center; margin-top:40px; flex-wrap:wrap; }
+  .btn-glass {
+    padding:13px 28px; border-radius:12px; text-decoration:none; font-size:13px; font-weight:600;
+    border:1px solid var(--glass-border); color:var(--text); background:rgba(255,255,255,0.08);
+    transition:all 0.2s; letter-spacing:0.3px;
+  }
+  .btn-glass:hover { background:var(--glass-hover); border-color:rgba(155,109,255,0.4); }
+  .btn-grad {
+    padding:13px 28px; border-radius:12px; text-decoration:none; font-size:13px; font-weight:600;
+    background:linear-gradient(135deg,var(--violet),var(--pink)); color:var(--text);
+    transition:opacity 0.2s; letter-spacing:0.3px;
+  }
+  .btn-grad:hover { opacity:0.85; }
+
+  /* SECTIONS */
+  section { padding:80px 24px; }
+  .sec-label { text-align:center; margin-bottom:52px; }
+  .sec-badge {
+    display:-webkit-inline-box; display:inline-flex; -webkit-box-align:center; align-items:center; gap:8px;
+    font-size:11px; font-weight:600; letter-spacing:2px; text-transform:uppercase;
+    color:var(--violet); margin-bottom:14px;
+  }
+  .sec-badge::before, .sec-badge::after { content:''; width:24px; height:1px; background:var(--violet); opacity:0.5; }
+  .sec-title { font-family:'Fraunces',serif; font-size:36px; font-weight:300; font-style:italic; }
+
+  /* SKILLS — single col on mobile, 3 col on desktop */
+  .skills-grid {
+    display:grid; grid-template-columns:1fr;
+    gap:16px; max-width:1100px; margin:0 auto;
+  }
+  /* ANDROID FIX: use background color fallback, -webkit- prefix for backdrop-filter */
+  .glass-card {
+    background:rgba(30,25,60,0.85); border:1px solid var(--glass-border); border-radius:20px;
+    padding:32px 28px;
+    -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px);
+    transition:border-color 0.3s, transform 0.3s;
+    position:relative; overflow:hidden;
+  }
+  .glass-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
+  }
+  .glass-card:hover { border-color:rgba(155,109,255,0.3); transform:translateY(-4px); }
+  .gc-icon { width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg,var(--violet),var(--pink)); display:-webkit-box; display:flex; -webkit-box-align:center; align-items:center; -webkit-box-pack:center; justify-content:center; font-size:20px; margin-bottom:20px; }
+  .gc-title { font-size:18px; font-weight:600; margin-bottom:6px; }
+  .gc-sub { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--violet); margin-bottom:20px; font-weight:500; }
+  .gc-items { list-style:none; }
+  .gc-items li { font-size:14px; color:var(--muted); padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.06); display:-webkit-box; display:flex; -webkit-box-align:center; align-items:center; gap:10px; font-weight:300; }
+  .gc-items li::before { content:''; width:4px; height:4px; border-radius:50%; background:var(--teal); flex-shrink:0; }
+  .gc-items li:last-child { border:none; }
+
+  /* WORK — ANDROID FIX: single column always, no grid-column:span 2 */
+  .work-grid {
+    display:grid; grid-template-columns:1fr;
+    gap:16px; max-width:1100px; margin:0 auto;
+  }
+  .work-card {
+    background:rgba(30,25,60,0.85); border:1px solid var(--glass-border); border-radius:20px;
+    padding:28px;
+    -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px);
+    transition:border-color 0.3s, transform 0.3s;
+    position:relative; overflow:hidden;
+    /* ANDROID FIX: remove grid-column span entirely — all cards full width */
+    grid-column:span 1 !important;
+  }
+  .work-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
+  }
+  .work-card:hover { border-color:rgba(61,255,208,0.3); transform:translateY(-3px); }
+  .wc-top { display:-webkit-box; display:flex; -webkit-box-pack:justify; justify-content:space-between; -webkit-box-align:start; align-items:flex-start; margin-bottom:16px; gap:8px; }
+  .wc-num { font-size:11px; font-weight:600; color:var(--teal); letter-spacing:2px; flex-shrink:0; }
+  .wc-badge {
+    font-size:10px; font-weight:600; letter-spacing:1px; text-transform:uppercase;
+    padding:4px 12px; border-radius:100px; border:1px solid rgba(155,109,255,0.4);
+    color:var(--violet); background:rgba(155,109,255,0.08); white-space:nowrap;
+  }
+  .wc-name { font-size:22px; font-weight:600; margin-bottom:6px; }
+  .wc-meta { font-size:12px; color:var(--muted); letter-spacing:1px; font-weight:300; margin-bottom:18px; }
+  .wc-links { display:-webkit-box; display:flex; gap:8px; flex-wrap:wrap; }
+  .wcl {
+    text-decoration:none; font-size:11px; font-weight:600; color:var(--text);
+    background:rgba(255,255,255,0.08); border:1px solid var(--glass-border);
+    padding:7px 14px; border-radius:8px; transition:all 0.2s; letter-spacing:0.3px;
+  }
+  .wcl:hover { background:rgba(61,255,208,0.15); border-color:rgba(61,255,208,0.4); color:var(--teal); }
+  .wc-insight {
+    font-size:12px; font-style:italic; color:rgba(61,255,208,0.75);
+    line-height:1.6; margin-bottom:18px; padding:12px 14px;
+    border-left:2px solid var(--teal); background:rgba(61,255,208,0.06);
+    border-radius:0 10px 10px 0; font-weight:300;
+  }
+
+  /* EXPERIENCE */
+  .exp-grid { display:grid; grid-template-columns:1fr; gap:20px; max-width:1100px; margin:0 auto; }
+  .exp-card {
+    background:rgba(30,25,60,0.85); border:1px solid var(--glass-border); border-radius:20px;
+    padding:32px 28px; position:relative; overflow:hidden;
+    -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px);
+    transition:border-color 0.3s, transform 0.3s;
+  }
+  .exp-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
+  }
+  .exp-card:hover { border-color:rgba(155,109,255,0.35); transform:translateY(-3px); }
+  .exp-top {
+    display:flex; align-items:flex-start; justify-content:space-between;
+    gap:16px; margin-bottom:20px; flex-wrap:wrap;
+  }
+  .exp-left { display:flex; align-items:flex-start; gap:16px; }
+  .exp-icon {
+    width:48px; height:48px; border-radius:14px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:22px;
+  }
+  .exp-icon.violet { background:linear-gradient(135deg,var(--violet),var(--pink)); }
+  .exp-icon.teal   { background:linear-gradient(135deg,var(--teal),var(--violet)); }
+  .exp-icon.pink   { background:linear-gradient(135deg,var(--pink),var(--teal)); }
+  .exp-role { font-size:13px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--violet); margin-bottom:4px; }
+  .exp-company { font-size:20px; font-weight:700; margin-bottom:2px; }
+  .exp-period {
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:11px; color:var(--muted); font-weight:400;
+    background:rgba(255,255,255,0.06); border:1px solid var(--glass-border);
+    padding:4px 12px; border-radius:100px; white-space:nowrap;
+  }
+  .exp-period::before { content:'📅'; font-size:10px; }
+  .exp-divider { width:100%; height:1px; background:rgba(255,255,255,0.06); margin:20px 0; }
+  .exp-duties { list-style:none; display:grid; grid-template-columns:1fr; gap:10px; }
+  .exp-duties li {
+    font-size:14px; color:var(--muted); font-weight:300; line-height:1.6;
+    display:flex; align-items:flex-start; gap:10px;
+  }
+  .exp-duties li::before {
+    content:''; width:6px; height:6px; border-radius:50%; background:var(--teal);
+    flex-shrink:0; margin-top:7px;
+  }
+  @media(min-width:900px){
+    .exp-duties { grid-template-columns:1fr 1fr; }
+  }
+
+  /* CONTACT */
+  .contact-wrap { max-width:800px; margin:0 auto; }
+  .contact-glass {
+    background:rgba(30,25,60,0.9); border:1px solid var(--glass-border); border-radius:24px;
+    -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px); overflow:hidden;
+  }
+  .cg-top { padding:48px 28px; text-align:center; border-bottom:1px solid var(--glass-border); }
+  .cg-title { font-family:'Fraunces',serif; font-size:clamp(28px,6vw,52px); font-weight:300; font-style:italic; line-height:1.2; }
+  .cg-title span {
+    background:linear-gradient(135deg,var(--violet),var(--teal));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  }
+  .cg-sub { font-size:15px; color:var(--muted); margin-top:14px; font-weight:300; line-height:1.6; }
+  /* ANDROID FIX: contact grid single column on mobile */
+  .cg-bottom { display:grid; grid-template-columns:1fr; }
+  .cg-item { padding:28px 28px; text-align:center; border-bottom:1px solid var(--glass-border); transition:background 0.2s; }
+  .cg-item:last-child { border:none; }
+  .cg-item:hover { background:var(--glass); }
+  .cg-type { font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--violet); margin-bottom:10px; font-weight:600; }
+  .cg-val { font-size:15px; font-weight:500; text-decoration:none; color:var(--text); display:block; transition:color 0.2s; word-break:break-all; }
+  .cg-val:hover { color:var(--teal); }
+
+  footer {
+    padding:28px 24px; text-align:center;
+    font-size:12px; color:var(--muted); font-weight:300; letter-spacing:0.5px;
+  }
+
+  /* TABLET & DESKTOP — restore multi-column layouts */
+  @media(min-width:640px){
+    .skills-grid { grid-template-columns:repeat(2,1fr); }
+    .cg-bottom { grid-template-columns:repeat(3,1fr); }
+    .cg-item { border-bottom:none; border-right:1px solid var(--glass-border); }
+    .cg-item:last-child { border-right:none; }
+  }
+  @media(min-width:900px){
+    nav { top:24px; padding:0 28px; }
+    .nav-links a { font-size:12px; padding:6px 16px; }
+    section { padding:100px 40px; }
+    .skills-grid { grid-template-columns:repeat(3,1fr); }
+    .work-grid { grid-template-columns:repeat(2,1fr); }
+    .hero { padding:120px 40px 80px; }
+  }
+
+  /* ── VIDEO MODAL ─────────────────────────────────────────────────────── */
+  .vm-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 9999;
+    background: rgba(0,0,0,0.93);
+    -webkit-overflow-scrolling: touch;
+  }
+  .vm-overlay.open { display: block; }
+
+  .vm-box {
+    position: absolute;
+    top: 50%; left: 50%;
+    -webkit-transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%);
+    width: 92vw;
+    max-width: 860px;
+    background: #0D0B1E;
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .vm-header {
+    display: -webkit-box; display: flex;
+    -webkit-box-align: center; align-items: center;
+    justify-content: space-between;
+    gap: 10px; padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    background: #0D0B1E;
+  }
+  .vm-title {
+    -webkit-box-flex: 1; flex: 1;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px; font-weight: 600;
+    color: #3DFFD0; letter-spacing: 0.4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .vm-close {
+    -webkit-appearance: none; appearance: none;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px; color: #fff;
+    font-size: 18px; line-height: 1;
+    width: 38px; height: 38px;
+    cursor: pointer; flex-shrink: 0;
+    font-family: 'Outfit', sans-serif;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    display: -webkit-box; display: flex;
+    -webkit-box-align: center; align-items: center;
+    -webkit-box-pack: center; justify-content: center;
+  }
+  .vm-close:active { background: rgba(255,255,255,0.28); }
+
+  .vm-iframe-wrap {
+    position: relative; width: 100%;
+    padding-bottom: 56.25%; background: #000;
+    overflow: hidden;
+  }
+  /* Vertical / Reel: 9:16 — narrow box, tall ratio */
+  .vm-iframe-wrap.vm-vertical {
+    padding-bottom: 0;
+    height: min(80vh, 560px);
+  }
+  /* Wide: 16:9 horizontal video */
+  .vm-iframe-wrap.vm-wide {
+    padding-bottom: 56.25%;
+  }
+  .vm-iframe-wrap iframe {
+    position: absolute;
+    top: -40px; left: 0;
+    width: 100%;
+    height: calc(100% + 40px);
+    border: none; display: block;
+  }
+  /* Narrow modal box for vertical reels */
+  .vm-box.vm-box-vertical {
+    max-width: 360px;
+  }
+  /* Wide modal for 16:9 horizontal video */
+  .vm-box.vm-box-wide {
+    max-width: 900px;
+    width: 95vw;
+  }
+  @media (max-width: 600px) {
+    .vm-box.vm-box-wide {
+      width: 98vw;
+    }
+    .vm-iframe-wrap.vm-wide {
+      padding-bottom: 56.25%;
+    }
+  }
+
+  /* ▶ trigger buttons */
+  .wcl-btn {
+    display: -webkit-inline-box; display: inline-flex;
+    -webkit-box-align: center; align-items: center; gap: 5px;
+    -webkit-appearance: none; appearance: none; cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px; font-weight: 600; color: var(--text);
+    background: rgba(255,255,255,0.08); border: 1px solid var(--glass-border);
+    padding: 7px 14px; border-radius: 8px;
+    transition: all 0.2s; letter-spacing: 0.3px;
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+  }
+  .wcl-btn:hover, .wcl-btn:active {
+    background: rgba(61,255,208,0.15);
+    border-color: rgba(61,255,208,0.4); color: var(--teal);
+  }
+  /* ── END VIDEO MODAL ──────────────────────────────────────────────────── */
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">EG</div>
+  <div class="nav-links">
+    <a href="#hero">Intro</a>
+    <a href="#skills">Skills</a>
+    <a href="#experience">Experience</a>
+    <a href="#work">Work</a>
+    <a href="#contact">Contact</a>
+  </div>
+  <a href="https://wa.me/201205447187" class="nav-btn">Get in touch</a>
+</nav>
+
+<section class="hero" id="hero">
+  <div class="hero-orb1"></div>
+  <div class="hero-orb2"></div>
+  <div class="hero-orb3"></div>
+  <div class="hero-content">
+    <div class="hero-pill"><div class="hero-pill-dot"></div> Video Editor · UAE & Saudi Arabia</div>
+    <h1>
+      <span class="name-1">EHAB</span>
+      <span class="name-2">Gamal</span>
+    </h1>
+    <p class="hero-desc">2+ years crafting videos that don't just look good — <strong>they perform.</strong> Every frame designed to capture attention and drive results.</p>
+    <div class="hero-actions">
+      <a href="#work" class="btn-grad">View My Work</a>
+      <a href="#contact" class="btn-glass">Get in Touch</a>
+    </div>
+  </div>
+</section>
+
+<section id="skills">
+  <div class="sec-label">
+    <div class="sec-badge">01 — Expertise</div>
+    <h2 class="sec-title">Skills & Tools</h2>
+  </div>
+  <div class="skills-grid">
+    <div class="glass-card">
+      <div class="gc-icon">✂</div>
+      <div class="gc-title">Video Editing</div>
+      <div class="gc-sub">Editing Software</div>
+      <ul class="gc-items">
+        <li>Adobe Premiere Pro</li>
+        <li>Adobe After Effects</li>
+        <li>CapCut</li>
+      </ul>
+    </div>
+    <div class="glass-card">
+      <div class="gc-icon" style="background:linear-gradient(135deg,var(--teal),var(--violet))">◐</div>
+      <div class="gc-title">Color Grading</div>
+      <div class="gc-sub">Color Tools</div>
+      <ul class="gc-items">
+        <li>Adobe Premiere Pro</li>
+        <li>DaVinci Resolve</li>
+      </ul>
+    </div>
+    <div class="glass-card">
+      <div class="gc-icon" style="background:linear-gradient(135deg,var(--pink),var(--teal))">◈</div>
+      <div class="gc-title">AI Enhanced</div>
+      <div class="gc-sub">AI Tools</div>
+      <ul class="gc-items">
+        <li>Claude</li>
+        <li>Freepik Premium</li>
+        <li>Nanno Banana</li>
+        <li>ElevenLabs</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="experience">
+  <div class="sec-label">
+    <div class="sec-badge">02 — Experience</div>
+    <h2 class="sec-title">Where I've Worked</h2>
+  </div>
+  <div class="exp-grid">
+
+    <!-- CMC -->
+    <div class="exp-card">
+      <div class="exp-top">
+        <div class="exp-left">
+          <div class="exp-icon teal">🏥</div>
+          <div>
+            <div class="exp-role">Video Editor</div>
+            <div class="exp-company">Canadian Medical Center</div>
+          </div>
+        </div>
+        <div class="exp-period">Jan 2024 – Mar 2026</div>
+      </div>
+      <div class="exp-divider"></div>
+      <ul class="exp-duties">
+        <li>Edited medical and healthcare-focused social media content</li>
+        <li>Created engaging Instagram Reels, promotional videos, and branded campaigns</li>
+        <li>Developed clean and professional visual storytelling suitable for healthcare audiences</li>
+        <li>Worked closely with marketing teams to increase audience engagement</li>
+        <li>Used AI tools to improve workflow efficiency and content production speed</li>
+      </ul>
+    </div>
+
+    <!-- Redact -->
+    <div class="exp-card">
+      <div class="exp-top">
+        <div class="exp-left">
+          <div class="exp-icon violet">🏙️</div>
+          <div>
+            <div class="exp-role">Video Editor</div>
+            <div class="exp-company">Redact Real Estate</div>
+          </div>
+        </div>
+        <div class="exp-period">Mar 2025 – Mar 2026</div>
+      </div>
+      <div class="exp-divider"></div>
+      <ul class="exp-duties">
+        <li>Produced luxury real estate video content for social media platforms</li>
+        <li>Edited cinematic property showcases and high-converting promotional videos</li>
+        <li>Designed engaging thumbnails and motion graphics for real estate marketing</li>
+        <li>Integrated AI-generated visuals and automation tools into production workflow</li>
+      </ul>
+    </div>
+
+    <!-- Freelancer -->
+    <div class="exp-card">
+      <div class="exp-top">
+        <div class="exp-left">
+          <div class="exp-icon pink">🎬</div>
+          <div>
+            <div class="exp-company">Freelancer</div>
+          </div>
+        </div>
+        <div class="exp-period">Jan 2023 – Present</div>
+      </div>
+      <div class="exp-divider"></div>
+      <ul class="exp-duties">
+        <li>Delivered video editing and production for diverse clients across industries</li>
+        <li>Worked on brand films, keynote edits, AI-powered content, and product videos</li>
+        <li>Managed full production workflows independently from brief to final delivery</li>
+        <li>Built long-term client relationships through consistent quality and fast turnaround</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<section id="work">
+  <div class="sec-label">
+    <div class="sec-badge">03 — Portfolio</div>
+    <h2 class="sec-title">Selected Work</h2>
+  </div>
+  <div class="work-grid">
+    <div class="work-card">
+      <div class="wc-top"><span class="wc-num">01</span><span class="wc-badge">Horizontal Videos</span></div>
+      <div class="wc-name">Horizontal Videos</div>
+      <div class="wc-meta">Live Event · AI Power</div>
+      <div class="wc-insight">"Wide cinematic frame captures the full energy of live events and AI-driven storytelling"</div>
+      <div class="wc-links">
+        <button class="wcl-btn" onclick="vmOpen('https://drive.google.com/file/d/1cBK0So6DTcXHPyisZxLnX6KW1EykBvqU/preview','Medical Event','wide')">&#9654; Medical Event</button>
+        <button class="wcl-btn" onclick="vmOpen('https://drive.google.com/file/d/1zNXGYY_RZNvII-gWq2a-4etgeAAbk95V/preview','AI Power','wide')">&#9654; AI Power</button>
+        <button class="wcl-btn" onclick="vmOpen('https://drive.google.com/file/d/1RkAzg05LFK2OSS1tcAyvQ8jG8XejxbE3/preview','Saudi Youtube Channel','wide')">&#9654; Saudi Youtube Channel</button>
+      </div>
+    </div>
+    <div class="work-card">
+      <div class="wc-top"><span class="wc-num">02</span><span class="wc-badge">Clients Projects</span></div>
+      <div class="wc-name">Freelance Projects</div>
+      <div class="wc-meta">Water+ · Brad Lea · Lenses · Muslim Clothes Jordan</div>
+      <div class="wc-insight">"Different styles across different markets — from Iraq to Jordan to global clients"</div>
+      <div class="wc-links">
+        <button class="wcl-btn" onclick="vmOpen('https://drive.google.com/file/d/1Bs-gYhl31oSRaNp1aQUCB5uvXg__fize/preview','Water+ Iraq','vertical')">&#9654; Water+ Iraq</button>
+        <button class="wcl-btn" onclick="vmOpen('https://drive.google.com/file/d/1sxIdVSMKO2JP5dTkrYztbzPqztKU6RXf/preview','Brad Lea','vertical')">&#9654; Brad Lea</button>
+        <button class="wcl-btn" onclick="vmOpen('https://drive.google.com/file/d/1Z9gtV-JBmsjzg7o2nsF3HU3gzmAEXQmH/preview','Eye Lenses','vertical')">&#9654; Eye Lenses</button>
+        <button class="wcl-btn" onclick="vmOpen('https://drive.google.com/file/d/1sAzeLtKz_MYsc9vXiOz9M9ANwQ2V8rIK/preview','Muslim Clothes · Jordan','vertical')">&#9654; Muslim Clothes · Jordan</button>
+      </div>
+    </div>
+    <div class="work-card">
+      <div class="wc-top"><span class="wc-num">03</span><span class="wc-badge">False Promises Campaign</span></div>
+      <div class="wc-name">REDACT Real Estate</div>
+      <div class="wc-meta">Dubai, UAE</div>
+      <div class="wc-insight">"Right color grading and sound design change the Raw files 180 Degree"</div>
+      <div class="wc-links">
+        <button class="wcl-btn" onclick="vmOpen('https://drive.google.com/file/d/1kbNhICRhM4kPe4EP5gnZh5uDxvtUTGG4/preview','Dubai False Promises · 01','vertical')">&#9654; Dubai False Promises · 01</button>
+        <button class="wcl-btn" onclick="vmOpen('https://drive.google.com/file/d/1AiS75Uyog2aymQnkykpKJtNvYyh18W0E/preview','Dubai False Promises · 02','vertical')">&#9654; Dubai False Promises · 02</button>
+      </div>
+    </div>
+    <div class="work-card">
+      <div class="wc-top"><span class="wc-num">04</span><span class="wc-badge">Trending Reels</span></div>
+      <div class="wc-name">El-wishy Residence</div>
+      <div class="wc-meta">AI-Enhanced Content · Redact</div>
+      <div class="wc-insight">"Using AI to change Rendered 3 images to complete 3 Videos"</div>
+      <div class="wc-links">
+        <button class="wcl-btn" onclick="vmOpen('https://drive.google.com/file/d/1R0UDL7EIpJ58Aj4Ly8ZaawDFv2dpaj5r/preview','Unit Showcase · 01','vertical')">&#9654; Unit Showcase · 01</button>
+        <button class="wcl-btn" onclick="vmOpen('https://drive.google.com/file/d/1o5aNj2TeA49ijkDCHCTaE48-Soeha2O7/preview','Unit Showcase · 02','vertical')">&#9654; Unit Showcase · 02</button>
+        <button class="wcl-btn" onclick="vmOpen('https://drive.google.com/file/d/1r1ZQ6uwkkxxLSQ4MzqFVIwoCLgHiwla3/preview','Unit Showcase · 03','vertical')">&#9654; Unit Showcase · 03</button>
+      </div>
+    </div>
+    <div class="work-card">
+      <div class="wc-top"><span class="wc-num">05</span><span class="wc-badge">Healthcare</span></div>
+      <div class="wc-name">Canadian Medical Center in UAE</div>
+      <div class="wc-meta">Medical Content</div>
+      <div class="wc-insight">"Choosing simple edit techniques to deliver the message as it's a Medical Center"</div>
+      <div class="wc-links">
+        <button class="wcl-btn" onclick="vmOpen('https://drive.google.com/file/d/1i_YkcG8AGx2a0CC8sR1-a_HQsZr0tBe_/preview','Lips Filler','vertical')">&#9654; Lips Filler</button>
+        <button class="wcl-btn" onclick="vmOpen('https://drive.google.com/file/d/1csd6baT54rOhmpWecj_fSRG-c_bH3n4_/preview','Laser Hair Removal','vertical')">&#9654; Laser Hair Removal</button>
+        <button class="wcl-btn" onclick="vmOpen('https://drive.google.com/file/d/1KNW4-6tOl1FQ7bdI75AQXHzjLAhKXENS/preview','Homecare Services','vertical')">&#9654; Homecare Services</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contact">
+  <div class="sec-label">
+    <div class="sec-badge">04 — Get in Touch</div>
+    <h2 class="sec-title">Let's Collaborate</h2>
+  </div>
+  <div class="contact-wrap">
+    <div class="contact-glass">
+      <div class="cg-top">
+        <h3 class="cg-title">Ready to create something <span>exceptional?</span></h3>
+        <p class="cg-sub">Whether you're a brand looking to grow or need high-performing video content — let's talk.</p>
+      </div>
+      <div class="cg-bottom">
+        <div class="cg-item">
+          <div class="cg-type">WhatsApp</div>
+          <a href="https://wa.me/201205447187" class="cg-val">0120 5447187</a>
+        </div>
+        <div class="cg-item">
+          <div class="cg-type">Email</div>
+          <a href="mailto:Ehabgamal9125@gmail.com" class="cg-val">Ehabgamal9125@gmail.com</a>
+        </div>
+        <div class="cg-item">
+          <div class="cg-type">LinkedIn</div>
+          <a href="https://www.linkedin.com/in/ehab-gamal-2a1b501a3" class="cg-val">linkedin.com/in/ehab-gamal</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>Ehab Gamal · Video Editor · UAE & Saudi Arabia · © 2026</footer>
+
+
+<!-- ── VIDEO MODAL ── -->
+<div class="vm-overlay" id="vm-overlay">
+  <div class="vm-box">
+    <div class="vm-header">
+      <span class="vm-title" id="vm-title"></span>
+      <button class="vm-close" onclick="vmClose()">&#x2715;</button>
+    </div>
+    <div class="vm-iframe-wrap">
+      <iframe id="vm-iframe" src="" allowfullscreen playsinline
+        allow="autoplay; fullscreen; picture-in-picture; web-share"
+        referrerpolicy="no-referrer-when-downgrade"
+        style="border:none;"></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var overlay  = document.getElementById('vm-overlay');
+  var box      = document.querySelector('.vm-box');
+  var wrap     = document.querySelector('.vm-iframe-wrap');
+  var iframe   = document.getElementById('vm-iframe');
+  var titleEl  = document.getElementById('vm-title');
+  var _sy = 0;
+
+  function freezeScroll(){
+    _sy = window.pageYOffset || document.documentElement.scrollTop || 0;
+    document.body.style.position  = 'fixed';
+    document.body.style.top       = '-' + _sy + 'px';
+    document.body.style.left      = '0';
+    document.body.style.right     = '0';
+    document.body.style.overflowY = 'scroll';
+  }
+  function thawScroll(){
+    document.body.style.position  = '';
+    document.body.style.top       = '';
+    document.body.style.left      = '';
+    document.body.style.right     = '';
+    document.body.style.overflowY = '';
+    window.scrollTo(0, _sy);
+  }
+
+  /*
+    src   = full embed URL
+    label = video title
+    mode  = 'vertical' (9:16 reels) | 'wide' (19:6 event) | 'standard' (16:9, default)
+  */
+  window.vmOpen = function(src, label, mode){
+    mode = mode || 'standard';
+
+    /* Reset classes */
+    box.className  = 'vm-box';
+    wrap.className = 'vm-iframe-wrap';
+
+    if(mode === 'vertical'){
+      box.classList.add('vm-box-vertical');
+      wrap.classList.add('vm-vertical');
+    } else if(mode === 'wide'){
+      box.classList.add('vm-box-wide');
+      wrap.classList.add('vm-wide');
+    }
+
+    titleEl.textContent = label;
+    overlay.classList.add('open');
+    freezeScroll();
+    setTimeout(function(){ iframe.src = src; }, 40);
+  };
+
+  window.vmClose = function(){
+    iframe.src = '';
+    overlay.classList.remove('open');
+    thawScroll();
+  };
+
+  overlay.addEventListener('click', function(e){
+    if(e.target === overlay) vmClose();
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') vmClose();
+  });
+}());
+</script>
+</body>
+</html>
